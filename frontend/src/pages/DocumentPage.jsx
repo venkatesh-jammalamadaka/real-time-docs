@@ -53,10 +53,15 @@ const DocumentPage = () => {
     debouncedSend(newContent);
   };
 
+  // This function resets the remote update flag.
+  const resetRemoteFlag = () => {
+    isRemoteUpdate.current = false;
+  };
+
   return (
     <div>
       <h2>Document: {docId}</h2>
-      <Editor content={remoteContent} onChange={handleEditorChange} />
+      <Editor content={remoteContent} onChange={handleEditorChange} resetRemoteFlag={resetRemoteFlag}/>
     </div>
   );
 };
