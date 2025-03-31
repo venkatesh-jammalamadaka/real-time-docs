@@ -100,7 +100,7 @@ func handleRead(client *Client) {
 		docMutex.Unlock()
 
 		// Broadcast the update
-		broadcast(client.docID, msg)
+		broadcast(client.docID, msg, client)
 	}
 }
 
@@ -142,16 +142,18 @@ func removeClient(client *Client) {
 
 // -------------------- Broadcast Updates --------------------
 
-func broadcast(docID string, msg []byte) {
+func broadcast(docID string, msg []byte, sender *Client) {
 	clMutex := getClientsMutex(docID)
 	clMutex.Lock()
 	defer clMutex.Unlock()
 
 	for _, client := range clients[docID] {
+		if client == sender {
+			continue
+		}
 		select {
 		case client.send <- msg:
 		default:
-			// If the send buffer is full or broken, remove the client
 			removeClient(client)
 		}
 	}
