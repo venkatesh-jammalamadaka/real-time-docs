@@ -1,12 +1,22 @@
 import React, { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { Plugin } from "prosemirror-state";
 
 const Editor = ({ content, onChange, resetRemoteFlag }) => {
-  // Initialize the editor without passing the content directly.
+  // Define a ProseMirror plugin that resets the remote flag on every transaction.
+  const remoteFlagPlugin = new Plugin({
+    appendTransaction(transactions, oldState, newState) {
+      // Call resetRemoteFlag for every transaction.
+      resetRemoteFlag();
+      return null;
+    },
+  });
+
+  // Initialize the editor. We add remoteFlagPlugin along with StarterKit.
   const editor = useEditor({
-    extensions: [StarterKit],
-    content: "", // start with empty content; we'll update manually
+    extensions: [StarterKit, remoteFlagPlugin],
+    content: "", // Start with empty content; remote content is set later.
     onUpdate: ({ editor }) => {
       console.log("update at editor");
       onChange(editor.getHTML());
@@ -19,31 +29,6 @@ const Editor = ({ content, onChange, resetRemoteFlag }) => {
       editor.commands.setContent(content, false);
     }
   }, [editor, content]);
-
-  // Attach event listeners to clear the remote flag on various input-related events.
-  useEffect(() => {
-    if (editor) {
-      const handleReset = () => {
-        resetRemoteFlag();
-      };
-
-      const dom = editor.view.dom;
-      // Attach multiple events to catch different user interactions:
-      dom.addEventListener("keydown", handleReset);
-      dom.addEventListener("keyup", handleReset);
-      dom.addEventListener("cut", handleReset);
-      dom.addEventListener("beforeinput", handleReset);
-      dom.addEventListener("input", handleReset);
-
-      return () => {
-        dom.removeEventListener("keydown", handleReset);
-        dom.removeEventListener("keyup", handleReset);
-        dom.removeEventListener("cut", handleReset);
-        dom.removeEventListener("beforeinput", handleReset);
-        dom.removeEventListener("input", handleReset);
-      };
-    }
-  }, [editor, resetRemoteFlag]);
 
   if (!editor) return <p>Loading editor...</p>;
 

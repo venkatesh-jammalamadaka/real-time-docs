@@ -16,15 +16,19 @@ const DocumentPage = () => {
 
     ws.onmessage = (event) => {
       const newContent = event.data;
-      // Update remoteContent only if it has changed.
-      if (newContent !== remoteContent) {
-        console.log("on message called")
-        console.log("new conetent: ", newContent)
-        console.log("remote conetent: ", remoteContent)
-        isRemoteUpdate.current = true;
-        setRemoteContent(newContent);
-      }
+      // Use functional update so the current remoteContent is obtained.
+      setRemoteContent((prevContent) => {
+        if (newContent !== prevContent) {
+          console.log("on message called");
+          console.log("new content:", newContent);
+          console.log("previous content:", prevContent);
+          isRemoteUpdate.current = true;
+          return newContent;
+        }
+        return prevContent;
+      });
     };
+    
 
     return () => {
       ws.close();
