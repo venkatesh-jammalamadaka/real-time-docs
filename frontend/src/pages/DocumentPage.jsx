@@ -1,71 +1,53 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import debounce from "lodash.debounce";
-import Editor from "../components/Editor"; // adjust path if needed
+import Editor from "../components/Editor"; // adjust path as needed
 
 const DocumentPage = () => {
   const { docId } = useParams();
   const [remoteContent, setRemoteContent] = useState("");
   const socketRef = useRef(null);
-  const isRemoteUpdate = useRef(false);
 
+  // Establish the WebSocket connection when docId changes.
   useEffect(() => {
-    // Create the WebSocket connection when docId changes.
     const ws = new WebSocket(`ws://localhost:8080/ws?docID=${docId}`);
     socketRef.current = ws;
 
     ws.onmessage = (event) => {
       const newContent = event.data;
-      // Use functional update so the current remoteContent is obtained.
-      setRemoteContent((prevContent) => {
-        if (newContent !== prevContent) {
-          console.log("on message called");
-          console.log("new content:", newContent);
-          console.log("previous content:", prevContent);
-          isRemoteUpdate.current = true;
-          return newContent;
-        }
-        return prevContent;
-      });
+      // Always update remoteContent with the latest content from the server.
+      setRemoteContent(newContent);
+      console.log("Received from server:", newContent);
     };
-    
 
     return () => {
       ws.close();
     };
-  }, [docId]); // Only depends on docId so that the connection remains stable.
+  }, [docId]);
 
-  // Create a debounced function to send updates after 300ms of no typing.
+  // Debounced function to send updates after 300ms.
   const debouncedSend = useCallback(
     debounce((newContent) => {
-      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      if (
+        socketRef.current &&
+        socketRef.current.readyState === WebSocket.OPEN
+      ) {
+        console.log("Sending update:", newContent);
         socketRef.current.send(newContent);
       }
     }, 300),
     []
   );
 
+  // Every update from the editor is sent (no flag check)
   const handleEditorChange = (newContent) => {
-    // If the update came from a remote change, skip sending it back.
-    if (isRemoteUpdate.current) {
-      console.log("returning without debounce")
-      isRemoteUpdate.current = false;
-      return;
-    }
-    // Use the debounced function to send the update.
-    console.log("debouncing")
     debouncedSend(newContent);
-  };
-
-  // This function resets the remote update flag.
-  const resetRemoteFlag = () => {
-    isRemoteUpdate.current = false;
   };
 
   return (
     <div>
       <h2>Document: {docId}</h2>
-      <Editor content={remoteContent} onChange={handleEditorChange} resetRemoteFlag={resetRemoteFlag}/>
+      <Editor content={remoteContent} onChange={handleEditorChange} />
     </div>
   );
 };
